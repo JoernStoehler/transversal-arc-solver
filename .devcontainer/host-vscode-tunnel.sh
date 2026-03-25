@@ -27,7 +27,7 @@ if ! command -v devcontainer >/dev/null 2>&1; then
   exit 1
 fi
 
-TUNNEL_NAME="transversal-arc-solver"
+TUNNEL_NAME="arc-solver"
 CODE_TUNNEL_BIN="${CODE_TUNNEL_BIN:-/usr/local/bin/code-tunnel}"
 CONFIG_FILE="${REPO_ROOT}/.devcontainer/devcontainer.json"
 
