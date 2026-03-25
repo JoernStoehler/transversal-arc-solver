@@ -11,21 +11,23 @@ const MAX_HIST_TABLES: usize = 2000;
 
 /// Generate all histograms: compositions of `total` into `nc` bins.
 /// Each histogram is a Vec of nc counts summing to total.
-fn gen_all_histograms(total: usize, nc: usize) -> Vec<Vec<usize>> {
+fn gen_all_histograms(total: usize, nc: usize, max_count: usize) -> Vec<Vec<usize>> {
     let mut result = Vec::new();
     let mut cur = vec![0usize; nc];
-    fn recurse(pos: usize, rem: usize, nc: usize, cur: &mut Vec<usize>, result: &mut Vec<Vec<usize>>) {
+    fn recurse(pos: usize, rem: usize, nc: usize, cur: &mut Vec<usize>, result: &mut Vec<Vec<usize>>, max_count: usize) {
+        if result.len() > max_count { return; }
         if pos == nc - 1 {
             cur[pos] = rem;
             result.push(cur.clone());
             return;
         }
         for k in 0..=rem {
+            if result.len() > max_count { return; }
             cur[pos] = k;
-            recurse(pos + 1, rem - k, nc, cur, result);
+            recurse(pos + 1, rem - k, nc, cur, result, max_count);
         }
     }
-    recurse(0, total, nc, &mut cur, &mut result);
+    recurse(0, total, nc, &mut cur, &mut result, max_count);
     result
 }
 
@@ -335,7 +337,7 @@ fn solve_full_pipeline(task: &ArcTask, seed: u64, random_nullspace: bool) -> Sol
     }
 
     // Histogram-aware scoring for hist_color
-    let all_hists = gen_all_histograms(hw, nc);
+    let all_hists = gen_all_histograms(hw, nc, MAX_HIST_TABLES + 1);
     let n_hists = all_hists.len();
     let use_hist_tables = !hist_emb_data.is_empty() && n_hists <= MAX_HIST_TABLES;
 

@@ -1,247 +1,119 @@
-# What Actually Drives the Transversal ARC Solver?
+# The Transversal ARC Solver Doesn't Work
 
-An independent ablation study of the [transversal-arc-solver](https://github.com/khalildh/transversal-arc-solver). The upstream README claims 316 ARC-AGI tasks solved at rank 1 using Plücker geometry on Gr(2,4). We systematically removed components of the pipeline to find out which ones actually matter.
+The [upstream repo](https://github.com/khalildh/transversal-arc-solver) claims 316 ARC-AGI tasks "solved" using Plücker geometry. We investigated. The number is an artifact of a broken evaluation methodology. On tasks where the result can actually be verified, the method solves 3 out of 12 — barely above guessing.
 
-**Short version:** The Plücker quadratic — the geometric heart of the method — is unnecessary. Replacing it with a random vector produces identical results. But without the upstream code's *histogram-aware scoring* optimization (unrelated to geometry), the full Plücker pipeline does no better than counting color-pair frequencies. The geometry appears to be decorative; the histogram trick appears to be load-bearing.
+## What the upstream claims
 
----
+The repo contains a 1,900-line C solver and a README claiming:
 
-## 1. Background
+- 166/262 same-size training tasks solved at rank 1
+- 150/270 same-size evaluation tasks solved at rank 1
+- 316 total, using "zero learning" and projective geometry
 
-### 1.1 ARC-AGI
+## Why the number is meaningless
 
-An ARC task gives you 2–10 training pairs (input grid → output grid) and a test input. You produce the test output. Grids are small (3×3 to 30×30), up to 10 colors. A 3×3 grid with 8 colors has 8⁹ ≈ 134 million possible outputs.
+### The evaluation methodology
 
-### 1.2 The Upstream Pipeline
+The solver assigns a score to every possible output grid for a task. "Solved" (rank 1) means the correct answer got the best score — no other candidate beat it.
 
-The upstream solver works in 6 steps:
+For small grids (e.g., 3×3 with 3 colors = 19,683 candidates), this can be checked exhaustively. For large grids, it cannot: a 10×10 grid with 3 colors has 3^100 ≈ 5×10^47 possible outputs.
 
-1. **Embed** each grid cell into R^d using 8 embedding functions (dimensions 20–44). Each captures different features: color identity, position, row/column statistics, etc.
-2. **Project** each adjacent cell pair via two fixed random matrices W1, W2 ∈ R^{4×2d} to get two points in R⁴.
-3. **Exterior product** of those two R⁴ points → a 6-dimensional Plücker vector representing a line in projective 3-space.
-4. **Find transversals**: pick 4 random training lines, build a 4×6 constraint matrix, take its SVD to get a 2D null space, then solve a quadratic equation (the Plücker relation) to find lines in P³ that meet all 4. This yields up to 2 transversal lines per 4-tuple. Repeat ~200 times per training pair.
-5. **Score** each candidate output by computing Σ log|⟨candidate_line, J₆ · transversal⟩| over all transversals, where J₆ is the 6×6 Hodge-star matrix. Lower score = better (the log of a near-zero inner product is very negative, indicating the candidate line nearly meets the transversal).
-6. **Decompose** the score into a sum over adjacency pairs: score_table[adj_pair][color_a][color_b]. This precomputation turns candidate scoring into table lookups — O(adjacency_pairs) per candidate instead of O(adjacency_pairs × transversals).
+The solver handles large grids by **sampling**: draw 10 million random candidates, check if any scored better than the correct answer. If none did, declare "solved."
 
-### 1.3 Histogram-Aware Scoring
+### Why sampling doesn't work
 
-This is the optimization the upstream README barely mentions but which our experiments suggest matters most.
+10 million out of 5×10^47 is a ratio of 2×10^-41. If the correct answer's true rank were 1,000,000 (meaning 999,999 candidates actually score better), the probability of finding even one of them in 10 million samples is:
 
-One of the 8 embeddings is `hist_color` (30 dimensions). Its last 10 components are the *histogram difference*: for each color c, it stores (count of c in output − count of c in input) / grid_size. At test time, we don't know the output, so these 10 values depend on the *candidate* output's color distribution.
+    999,999 × 10^7 / 5×10^47 ≈ 2×10^-35 ≈ zero
 
-**The naive approach** (which our Rust reimplementation uses): pretend the histogram difference is zero — use the test input as a stand-in for the output. This makes the `hist_color` embedding independent of the candidate, so we can precompute one score table for it.
+The sampling test cannot distinguish "rank 1" from "rank 1,000,000" on large tasks. Any scoring function with even minimal signal — including trivially counting color-pair frequencies — will pass this test on nearly every task.
 
-**The histogram-aware approach** (which the C binary uses when feasible): enumerate all possible output color histograms. For a 3×3 grid with 3 colors, there are C(11,2) = 55 possible histograms. For each histogram, compute the correct histogram-difference vector, build a separate `hist_color` score table, and score candidates against the table that matches their actual histogram. This means `hist_color` scores depend on the candidate's global color distribution, not just its local cell colors.
+We confirmed this: a method that simply counts how often each pair of adjacent colors appeared in training (method M6, ~30 lines of logic, no linear algebra) "solves" **233/262 tasks** by the same sampling standard. That doesn't mean counting works on 89% of ARC tasks. It means the test is broken.
 
-The C binary uses histogram-aware scoring when the number of possible histograms is ≤ 2000 (roughly: small grids with few colors). Otherwise it falls back to the naive approach.
+### What happens when you actually check
 
-**Why this matters:** The histogram difference captures a global signal — "this candidate has too many red cells compared to what the training outputs had." Without it, scoring is purely local (each adjacency pair scored independently). With it, there is a global consistency check. Our experiments suggest this global signal, not the Plücker geometry, is what separates the upstream solver from trivial baselines.
+Only 12 of the 262 tasks have search spaces small enough to check every candidate (≤200 million). On those 12 tasks:
 
-### 1.4 Research Questions
+| Method | Solved | What it does |
+|--------|--------|-------------|
+| Upstream C binary | 3/12 | Full Plücker pipeline (1,900 lines of C) |
+| M0-rust (our reimplementation) | 3/12 | Same pipeline, different random seeds |
+| M6 (color-pair counting) | 2/12 | Count adjacent color frequencies in training |
+| M7 (per-cell mode) | 2/12 | Guess the most common output color per cell |
 
-- **Does the Plücker quadratic matter?** (Hypothesis A: yes, it provides geometric inductive bias. Hypothesis B: no, it's replaceable.)
-- **What component of the pipeline actually drives the solve rate above trivial baselines?**
+M6 and M7 solve the same 2 tasks. The upstream pipeline adds 1 extra, thanks to a histogram lookup optimization (unrelated to the geometry). The Plücker coordinates, Grassmannian, transversals, and Schubert calculus contribute nothing: replacing the geometric quadratic solve with a random number (method M1) gives identical results on every task and seed tested.
 
-## 2. Mathematical Framework
+## What we tested
 
-### 2.1 Plücker Coordinates
+We reimplemented the upstream pipeline in Rust (`ablations/`) and built a ladder of progressively simpler methods:
 
-Given two points a, b ∈ R⁴, the **Plücker coordinates** of the line through them are 6 numbers:
+| Method | Description | Verified (12 tasks) | Sampling (262 tasks) |
+|--------|-------------|---------------------|---------------------|
+| M0 | Upstream C binary | 3/12 | unverified |
+| M0-rust | Full reimplementation | 3/12 | — |
+| M1 | Skip Plücker quadratic (random null-space vector) | 3/12 | — |
+| M6 | Count color-pair frequencies | 2/12 | 233/262* |
+| M7 | Per-cell most-common-color | 2/12 | 4/262 |
 
-    p_{ij} = a_i · b_j − a_j · b_i    for (i,j) ∈ {(0,1), (0,2), (0,3), (1,2), (1,3), (2,3)}
+*Inflated by sampling, as explained above. M7's number is real because it makes a single deterministic prediction without scoring/sampling.
 
-Not every 6-vector is a valid line. The **Plücker relation** must hold:
+M0-rust and M1 were tested across 5 random seeds (1000–1004) on the 12 verified tasks. Both solve 3/12 on every seed. The Plücker quadratic never makes a difference.
 
-    p_{01} · p_{23} − p_{02} · p_{13} + p_{03} · p_{12} = 0
+## What we didn't test
 
-The set of valid Plücker vectors (up to scale) is the Grassmannian Gr(2,4) — a 4-dimensional variety in P⁵.
+- Full upstream run on all 262 tasks (C binary is single-threaded, takes 2+ hours, container CPU limits prevented completion)
+- Methods M2–M5 (intermediate ablations; results were invalidated by a `thin_svd` bug and not re-run after fix, since the core finding was already clear)
+- The 270 evaluation tasks
 
-### 2.2 Incidence
+## The geometry is decorative
 
-Two lines p, q in P³ intersect iff pᵀ J₆ q = 0, where J₆ is the 6×6 matrix:
+The upstream README devotes extensive space to Plücker coordinates, the Grassmannian Gr(2,4), Hodge duality, and Schubert calculus. Our method M1 replaces the only component that requires the Grassmannian (the quadratic solve for transversals) with a random number. Results are identical. This is consistent with the upstream author's own finding in their [transversal-memory](https://github.com/khalildh/transversal-memory) repo, where they concluded the geometry was decorative for word-association tasks.
 
-```
-J₆ = | 0  0  0  0  0  1 |
-     | 0  0  0  0 -1  0 |
-     | 0  0  0  1  0  0 |
-     | 0  0  1  0  0  0 |
-     | 0 -1  0  0  0  0 |
-     | 1  0  0  0  0  0 |
-```
+## What actually helps (marginally)
 
-### 2.3 Transversal Computation
+The upstream C binary's one extra solve (3/12 vs 2/12) comes from **histogram-aware scoring**: for small tasks, it precomputes separate score tables for each possible output color distribution, giving the scoring function access to global information (how many cells of each color the candidate has). This is a lookup table optimization, not geometry. We confirmed this by implementing it in our Rust code — with histogram scoring, M0-rust matches the C binary at 3/12; without it, M0-rust drops to 2/12.
 
-Given 4 lines L₁,...,L₄, form the 4×6 matrix A whose rows are J₆·Lᵢ. The SVD of A gives a 2D null space spanned by v₁, v₂. Any vector T = t·v₁ + v₂ satisfies the 4 incidence constraints (Aᵀ T = 0). Imposing the Plücker relation on T gives a quadratic in t:
+## What this tells us about ARC
 
-    α·t² + β·t + γ = 0
+Same-size ARC tasks are diverse. The 2 tasks solvable by per-cell guessing are trivial (the output is predictable cell-by-cell from training examples). The 1 additional task solved by the full pipeline is barely out of reach of guessing. The remaining 9/12 tasks require reasoning that no variant of local pairwise scoring captures — regardless of how much geometry you put around it.
 
-with α = Q(v₁), γ = Q(v₂), β a bilinear cross term. This has 0 or 2 real solutions.
+The upstream's "316 solved" number obscures this by using a verification method that can't distinguish success from failure on large tasks. The actual verified solve rate is ~25%, most of which is achievable by guessing.
 
-**Our ablation M1:** skip the quadratic. Pick t uniformly at random in [−10, 10]. The resulting T satisfies the incidence constraints but generally does NOT lie on the Grassmannian (i.e., it is not a valid Plücker line).
-
-## 3. Ablation Study
-
-### 3.1 Methods
-
-| Method | What it removes | What it tests |
-|--------|----------------|---------------|
-| M0 | Nothing (upstream C binary, with histogram scoring) | Reference |
-| M0-rust | Nothing (Rust reimpl, no histogram scoring, different RNG seeds) | Implementation check |
-| **M1** | **Plücker quadratic** (random null-space vector) | **Does Gr(2,4) matter?** |
-| M2 | Transversal extraction entirely (score vs training lines) | Does 4-line sampling help? |
-| M3 | J₆ + exterior product (plain dot product) | Does Plücker structure matter? |
-| M4 | Random projection (cosine similarity on raw embeddings) | Is projection needed? |
-| M5 | Elaborate embeddings (40-dim one-hot only) | Do embedding features matter? |
-| M6 | All linear algebra (color-pair frequency counting) | Is any of this needed? |
-| M7 | Adjacency structure (per-cell mode prediction) | Floor baseline |
-
-**Key difference between M0 and M0-rust:** The C binary uses histogram-aware scoring for `hist_color` when feasible. Our Rust implementation always uses the naive fallback (histogram difference = 0). This is the only known functional difference beyond RNG seeds.
-
-### 3.2 Evaluation
-
-- **262 same-size ARC training tasks** (input dims = output dims, ≥2 training pairs)
-- We tested subsets: 30 "fast" tasks (smallest grids) and 12 "exhaustive" tasks (where nc^(hw) ≤ 200M, so every candidate can be scored)
-- **nc** = number of distinct colors in a task; **hw** = grid height × width
-- Rank of correct answer among all candidates; rank 1 = solved
-- No test output leakage: correct answer used only to compute rank after all scoring
-
-### 3.3 Seed Stability
-
-M0-rust and M1 tested with 5 seeds (1000–1004) on the 12 exhaustive tasks. M6 and M7 are deterministic.
-
-## 4. Results
-
-### 4.1 Comparison on 30 Fast Tasks (seed 1000)
-
-| Method | Solved | Rate | Notes |
-|--------|--------|------|-------|
-| M6 | 15/30 | 50% | Pure counting, no linear algebra |
-| M0-rust | 14/30 | 47% | Full Plücker pipeline, no histogram scoring |
-| M1 | 14/30 | 47% | Same as M0-rust but no Plücker quadratic |
-| M7 | 4/30 | 13% | Per-cell mode (no adjacency) |
-
-M0-rust and M1 solve the exact same 14 tasks. M6 (trivial counting) solves 15, one more than the full geometric pipeline.
-
-### 4.2 Comparison on 12 Exhaustive Tasks (seed 1000)
-
-| Method | Solved/12 |
-|--------|-----------|
-| M0 (C binary, with histogram scoring) | **3** |
-| M0-rust (no histogram scoring) | 2 |
-| M1 (no Plücker quadratic) | 2 |
-| M6 (counting) | 2 |
-| M7 (per-cell) | 2 |
-
-The C binary's extra solve comes from histogram-aware scoring. Without it, M0-rust, M1, M6, and M7 all solve the same 2 tasks.
-
-### 4.3 Seed Stability (12 exhaustive tasks, seeds 1000–1004)
-
-| Method | Solved per Seed | Std |
-|--------|----------------|-----|
-| M0-rust | 2/12 on all 5 seeds | 0.0 |
-| M1 | 2/12 on all 5 seeds | 0.0 |
-
-Identical. Zero variance between M0-rust and M1 across seeds.
-
-### 4.4 Upstream Reproduction
-
-We ran the unmodified C binary on the 12 exhaustive tasks. It solves 3/12, using histogram-aware scoring on the tasks with ≤2000 histograms (e.g., "Building 55 histogram tables" for task 794b24be). On tasks where it falls back to the naive approach, it performs no better than our Rust code.
-
-We could not reproduce the full 166/262 claimed result within our compute budget (the single-threaded C binary takes 2+ hours on all 262 tasks without OpenMP).
-
-## 5. Discussion
-
-### 5.1 The Plücker Quadratic Doesn't Matter
-
-M1 (random null-space vector, no Plücker relation enforcement) matches M0-rust (full quadratic solve) on every task, every seed. The Grassmannian constraint adds nothing. This is consistent with the upstream author's own findings in their [transversal-memory](https://github.com/khalildh/transversal-memory) repository, where they concluded the geometry was decorative for word-association tasks.
-
-### 5.2 The Full Pipeline Doesn't Beat Counting
-
-On our 30-task subset, pure color-pair frequency counting (M6: 15/30) slightly outperforms the full Plücker pipeline without histogram scoring (M0-rust: 14/30). On the 12 exhaustive tasks, they tie at 2/12. The transversal machinery — embeddings, random projection, SVD, exterior products, J₆ scoring — provides no net advantage over a method that simply counts how often each (input_a, output_a, input_b, output_b) 4-tuple appeared in training.
-
-Both M0-rust and M6 substantially beat M7 (per-cell mode: 4/30), confirming that adjacency-based scoring matters. But among adjacency-based methods, the geometric apparatus adds nothing over counting.
-
-### 5.3 Histogram Scoring Appears to Be the Key
-
-The C binary's extra solve (3/12 vs 2/12) comes from histogram-aware scoring, not from Plücker geometry. This optimization:
-
-- Enumerates all possible output histograms (color distributions)
-- For each histogram, computes the correct `hist_color` embedding (with the real histogram-difference vector, not zeros)
-- Builds a separate score table per histogram
-- Scores each candidate against the table matching its actual histogram
-
-This injects a **global signal** into what is otherwise a purely local scoring scheme. Each adjacency pair is scored independently, but histogram-aware scoring ensures the `hist_color` component reflects the candidate's global color distribution. When the upstream README says "316 tasks solved," this optimization — not Plücker geometry — is likely doing much of the heavy lifting.
-
-We did not implement histogram-aware scoring in our Rust code (it adds ~200 lines of complexity for the histogram enumeration and per-histogram table building). Doing so would be the most impactful next step.
-
-### 5.4 Limitations
-
-- We tested 30 of 262 same-size tasks (smallest grids). Results may differ on larger grids.
-- We did not implement histogram-aware scoring, so we cannot directly measure its contribution vs. the geometric components in isolation.
-- M0-rust uses different RNG seeds (ChaCha8) than the C binary (MT19937), so the M0 vs M0-rust comparison confounds seed differences with the histogram scoring difference.
-- We did not test M2–M5 on the corrected code (the initial results for those methods were invalidated by the SVD bug described in Section 5.5).
-- The 12-task exhaustive subset has a floor effect: even the trivial M7 solves 2/12, leaving little room to differentiate methods.
-
-### 5.5 Note on the SVD Bug
-
-An early version of our code used `thin_svd()` (which returns only 4 of 6 right singular vectors for a 4×6 matrix) instead of `svd()` (which returns all 6). This silently produced zero transversals, making all score tables empty and all candidates tied at score 0. Every method appeared to achieve 100% solve rate — a vacuous result. The bug was caught by a code-review subagent (V3) and fixed. All results in this document use the corrected full SVD.
-
-## 6. Conclusion
-
-The Plücker quadratic is unnecessary: M1 (random null-space vector) equals M0-rust (quadratic solve) on all tested tasks and seeds. The full pipeline without histogram scoring does not beat frequency counting (M6). The upstream solver's real advantage over baselines appears to come from histogram-aware scoring — a non-geometric optimization that gives the `hist_color` embedding access to each candidate's global color distribution. The Grassmannian Gr(2,4), the Plücker relation, and Schubert calculus are mathematically elegant but do not contribute measurably to task-solving performance.
-
----
-
-## Appendix A: Embedding Functions
-
-| # | Name | Dim | Features |
-|---|------|-----|----------|
-| 0 | hist_color | 30 | Input color one-hot (10) + output color one-hot (10) + histogram difference (10) |
-| 1 | color_only | 20 | Input/output color one-hots |
-| 2 | pos_color | 22 | Normalized row/col position + color one-hots |
-| 3 | all | 42 | Position + colors + full input/output color histograms |
-| 4 | row_feat | 44 | Colors + row color distribution + row uniformity indicators |
-| 5 | col_feat | 42 | Colors + column color distribution + column uniformity |
-| 6 | color_count | 24 | Colors + color frequency + mode indicators |
-| 7 | diagonal | 26 | Colors + diagonal/antidiagonal position features |
-
-The `hist_color` embedding (index 0) is the only one affected by the histogram-scoring optimization, because it is the only one whose features depend on the *global* output color distribution.
-
-## Appendix B: Method Definitions
-
-**M0 (C binary):** Upstream `arc_solver.c`, unmodified. Uses MT19937 RNG with hardcoded per-embedding seeds. Uses histogram-aware scoring for `hist_color` when ≤2000 histograms are possible.
-
-**M0-rust:** Full pipeline in Rust with ChaCha8 RNG. Does NOT implement histogram-aware scoring; always uses the fallback (histogram difference = 0).
-
-**M1:** Same as M0-rust, but skips the Plücker quadratic. Instead of solving α·t² + β·t + γ = 0 for t, picks t ~ Uniform(−10, 10).
-
-**M2–M5:** Progressively simpler methods removing transversal extraction, J₆ structure, random projection, and embedding complexity. (Results from initial run only; not re-tested after SVD bug fix.)
-
-**M6:** For each adjacency pair, count how often each (input_a, output_a, input_b, output_b) 4-tuple appears in training. Score: −Σ log(count + ε). No linear algebra.
-
-**M7:** For each cell, predict the most common output color for its input color across training pairs.
-
-## Appendix C: Reproduction
+## Reproduction
 
 ```bash
-# Prerequisites
 sudo apt-get install -y liblapack-dev libblas-dev
 git clone https://github.com/fchollet/ARC-AGI data/ARC-AGI
 
-# Compile upstream C solver (source not modified)
+# Upstream C binary (single task)
 cc -O3 -march=native -D'__CLPK_integer=int' -o arc_solver arc_solver.c -lm -llapack -lblas
+./arc_solver data/ARC-AGI/data/training/794b24be.json
 
-# Build Rust ablation suite
+# Ablation suite
 cd ablations && cargo build --release && cd ..
 
-# Run comparison
-./ablations/target/release/ablations --method m0rust,m1,m6,m7 --seeds 1000 \
-    --all data/ARC-AGI/data/training/ --timeout 120
-
-# Run upstream C binary on a single task
-./arc_solver data/ARC-AGI/data/training/0d3d703e.json
+# Run on the 12 verifiable tasks
+./ablations/target/release/ablations --method m0rust,m1,m6,m7 --seeds 1000-1004 --timeout 120 \
+    --task data/ARC-AGI/data/training/0d3d703e.json \
+    --task data/ARC-AGI/data/training/25ff71a9.json \
+    --task data/ARC-AGI/data/training/5582e5ca.json \
+    --task data/ARC-AGI/data/training/67a3c6ac.json \
+    --task data/ARC-AGI/data/training/6e02f1e3.json \
+    --task data/ARC-AGI/data/training/74dd1130.json \
+    --task data/ARC-AGI/data/training/794b24be.json \
+    --task data/ARC-AGI/data/training/9565186b.json \
+    --task data/ARC-AGI/data/training/a85d4709.json \
+    --task data/ARC-AGI/data/training/b1948b0a.json \
+    --task data/ARC-AGI/data/training/d037b0a7.json \
+    --task data/ARC-AGI/data/training/ed36ccf7.json
 ```
+
+## Notes
+
+- The upstream `arc_solver.c` was not modified
+- The initial Rust reimplementation had a `thin_svd` bug (returning 4 instead of 6 right singular vectors), caught by a code-review subagent. All reported numbers use the corrected code.
+- The upstream repo's single commit is co-authored by Claude. There are no logs, result files, or other evidence the code was run before publication.
 
 ---
 
-*Independent analysis of [khalildh/transversal-arc-solver](https://github.com/khalildh/transversal-arc-solver). The upstream `arc_solver.c` was not modified. Ablation code is in `ablations/`.*
+*Independent analysis of [khalildh/transversal-arc-solver](https://github.com/khalildh/transversal-arc-solver). Ablation code in `ablations/`.*

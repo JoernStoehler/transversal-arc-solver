@@ -1,0 +1,31 @@
+Found 262 same-size tasks in data/ARC-AGI/data/training/
+
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 262
+
+  bb43febb (2 train, 10x10):
+  3 colors, 5151 histograms -- using placeholder for hist embeddings
+  Too many candidates (1162261467), using sampling (10000000 samples)
+    SOLVED  rank 1/1162261467
+    3200 transversals, setup=0.1s, score=30.81s
+
+  a5313dff (3 train, 9x9):
+  3 colors, 3403 histograms -- using placeholder for hist embeddings
+  Too many candidates (1162261467), using sampling (10000000 samples)
+    SOLVED  rank 1/1162261467
+    4800 transversals, setup=0.1s, score=24.57s
+
+  d06dbe63 (2 train, 13x13):
+  3 colors, 14535 histograms -- using placeholder for hist embeddings
+  Too many candidates (1162261467), using sampling (10000000 samples)
+    SOLVED  rank 1/1162261467
+    3200 transversals, setup=0.1s, score=52.70s
+
+  760b3cac (3 train, 6x9):
+  Building 1540 histogram tables for 1 hist embeddings...
+  Too many candidates (1162261467), using sampling (10000000 samples)
+    SOLVED  rank 1/1162261467
+    4800 transversals, setup=0.0s, score=10.83s
+
+  06df4c85 (3 train, 26x26):
