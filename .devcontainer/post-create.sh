@@ -40,7 +40,7 @@ fi
 # Compile upstream arc_solver if not present
 if [ ! -f "arc_solver" ] && [ -f "arc_solver.c" ]; then
   echo "[post-create] Compiling arc_solver.c..."
-  cc -O3 -march=native -o arc_solver arc_solver.c -lm -llapack -lblas
+  cc -O3 -march=native -D'__CLPK_integer=int' -o arc_solver arc_solver.c -lm -llapack -lblas
 fi
 
 # tmux config for Claude Code TUI compatibility
