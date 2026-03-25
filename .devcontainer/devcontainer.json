@@ -1,0 +1,34 @@
+{
+  // Local devcontainer for transversal-arc-solver (Jörn's Ubuntu desktop).
+  //
+  // Prerequisites on host:
+  // - /srv/devhome/ directories exist
+  // - devcontainer CLI: npm i -g @devcontainers/cli
+  //
+  // Usage from host:
+  //   .devcontainer/host-devcontainer-rebuild.sh
+  //   .devcontainer/host-vscode-tunnel.sh
+  "name": "transversal-arc-solver-local",
+  "dockerFile": "Dockerfile",
+  "workspaceFolder": "/workspaces/transversal-arc-solver",
+  "updateRemoteUserUID": true,
+  "features": {},
+  "runArgs": ["--memory=10g", "--memory-swap=12g", "--cap-add=SYS_ADMIN"],
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "containerEnv": {
+    "TERM": "xterm-256color",
+    "LANG": "en_US.UTF-8",
+    "DEVCONTAINER_ENV": "local",
+    "HISTFILE": "/home/vscode/.bash_history_dir/.bash_history",
+    "CARGO_BUILD_JOBS": "4",
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
+    "VSCODE_CLI_USE_FILE_KEYCHAIN": "1"
+  },
+  "mounts": [
+    "source=/srv/devhome/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
+    "source=/srv/devhome/.config/gh,target=/home/vscode/.config/gh,type=bind,consistency=cached",
+    "source=/srv/devhome/.cache/uv,target=/home/vscode/.cache/uv,type=bind,consistency=cached",
+    "source=/srv/devhome/.bash_history_dir,target=/home/vscode/.bash_history_dir,type=bind,consistency=cached",
+    "source=/srv/devhome/.vscode-cli,target=/home/vscode/.vscode-cli,type=bind,consistency=cached"
+  ]
+}
