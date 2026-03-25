@@ -1,0 +1,19 @@
+# Rust build artifacts
+target/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store
+
+# Data (clone separately)
+data/ARC-AGI/
+
+# Binary
+arc_solver
+
+# Claude Code local settings
+.claude/settings.local.json

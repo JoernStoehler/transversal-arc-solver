@@ -1,0 +1,148 @@
+=== 0d3d703e ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  0d3d703e (4 train, 3x3):
+  8 colors, 11440 histograms -- using placeholder for hist embeddings
+    DEBUG: correct=-151900.234375 best=-151900.234375 diff=0.00e+00 better=0
+    SOLVED  rank 1/134217728
+    6400 transversals, setup=0.1s, score=44.18s
+
+============================================================
+SUMMARY: 1/1 solved, 1/1 rank 1
+=== 25ff71a9 ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  25ff71a9 (4 train, 3x3):
+  Building 55 histogram tables for 1 hist embeddings...
+    DEBUG: correct=-78965.898438 best=-84017.992188 diff=5.05e+03 better=1
+    LIKELY RANK 1  rank 1/19683
+    6400 transversals, setup=0.0s, score=0.00s
+
+============================================================
+SUMMARY: 0/1 solved, 1/1 rank 1
+=== 5582e5ca ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  5582e5ca (3 train, 3x3):
+  7 colors, 5005 histograms -- using placeholder for hist embeddings
+    rank 10329050/40353607
+    4800 transversals, setup=0.1s, score=14.01s
+
+============================================================
+SUMMARY: 0/1 solved, 0/1 rank 1
+=== 67a3c6ac ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  67a3c6ac (3 train, 3x3):
+  Building 220 histogram tables for 1 hist embeddings...
+    rank 1972/262144
+    4800 transversals, setup=0.0s, score=0.05s
+
+============================================================
+SUMMARY: 0/1 solved, 0/1 rank 1
+=== 6e02f1e3 ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  6e02f1e3 (5 train, 3x3):
+  Building 715 histogram tables for 1 hist embeddings...
+    rank 14/1953125
+    8000 transversals, setup=0.1s, score=1.09s
+
+============================================================
+SUMMARY: 0/1 solved, 0/1 rank 1
+=== 74dd1130 ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  74dd1130 (4 train, 3x3):
+  8 colors, 11440 histograms -- using placeholder for hist embeddings
+    rank 132746453/134217728
+    6400 transversals, setup=0.1s, score=44.09s
+
+============================================================
+SUMMARY: 0/1 solved, 0/1 rank 1
+=== 794b24be ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  794b24be (10 train, 3x3):
+  Building 55 histogram tables for 1 hist embeddings...
+    DEBUG: correct=-120914.843750 best=-120914.843750 diff=0.00e+00 better=0
+    SOLVED  rank 1/19683
+    16000 transversals, setup=0.1s, score=0.00s
+
+============================================================
+SUMMARY: 1/1 solved, 1/1 rank 1
+=== 9565186b ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  9565186b (4 train, 3x3):
+  6 colors, 2002 histograms -- using placeholder for hist embeddings
+    rank 763354/10077696
+    6400 transversals, setup=0.0s, score=3.40s
+
+============================================================
+SUMMARY: 0/1 solved, 0/1 rank 1
+=== a85d4709 ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  a85d4709 (4 train, 3x3):
+  Building 715 histogram tables for 1 hist embeddings...
+    rank 910/1953125
+    6400 transversals, setup=0.0s, score=1.10s
+
+============================================================
+SUMMARY: 0/1 solved, 0/1 rank 1
+=== b1948b0a ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  b1948b0a (3 train, 4x4):
+  Building 153 histogram tables for 1 hist embeddings...
+    DEBUG: correct=-65502.738281 best=-65502.738281 diff=0.00e+00 better=0
+    SOLVED  rank 1/43046721
+    4800 transversals, setup=0.0s, score=11.27s
+
+============================================================
+SUMMARY: 1/1 solved, 1/1 rank 1
+=== d037b0a7 ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  d037b0a7 (3 train, 3x3):
+  7 colors, 5005 histograms -- using placeholder for hist embeddings
+    rank 10090/40353607
+    4800 transversals, setup=0.1s, score=13.38s
+
+============================================================
+SUMMARY: 0/1 solved, 0/1 rank 1
+=== ed36ccf7 ===
+ARC Plucker Transversal Solver (C)
+Embeddings: 8, Trans/pair: 200
+Tasks: 1
+
+  ed36ccf7 (4 train, 3x3):
+  Building 715 histogram tables for 1 hist embeddings...
+    rank 42/1953125
+    6400 transversals, setup=0.0s, score=1.06s
+
+============================================================
+SUMMARY: 0/1 solved, 0/1 rank 1

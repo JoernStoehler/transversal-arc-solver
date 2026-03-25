@@ -1,0 +1,2 @@
+method	seed	n_tasks	n_solved	n_timeout	solve_rate	wall_seconds
+m7	1000	262	4	0	0.0153	0.1

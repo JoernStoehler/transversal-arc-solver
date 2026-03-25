@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "Edit(.claude/**)",
+      "Write(.claude/**)",
+      "Read(.claude/**)"
+    ]
+  },
+  "model": "opus[1m]",
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/session-start.sh",
+            "timeout": 300,
+            "statusMessage": "Setting up Rust toolchain..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+method	seed	n_tasks	n_solved	n_timeout	solve_rate	wall_seconds
+m0rust	1000	12	12	0	1.0000	51.0
+m0rust	1001	12	12	0	1.0000	52.7
+m0rust	1002	12	12	0	1.0000	50.5
+m0rust	1003	12	12	0	1.0000	49.7
+m0rust	1004	12	12	0	1.0000	52.3
+m0rust	1005	12	12	0	1.0000	52.1
+m0rust	1006	12	12	0	1.0000	50.8
+m0rust	1007	12	12	0	1.0000	52.3
+m0rust	1008	12	12	0	1.0000	51.2
+m0rust	1009	12	12	0	1.0000	51.7
